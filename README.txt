@@ -1,0 +1,1 @@
+This project is a program that uses a Huffman Tree to compress text.
