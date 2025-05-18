@@ -90,11 +90,25 @@ void compress(string filename){
     std::unordered_map<char, string>* charPath = new std::unordered_map<char, string>;
     getCharPaths(root, charPath, "");
 
+    size_t lastdot = filename.find_last_of(".");
+    string file = filename.substr(0, lastdot);
+    std::ofstream outfile(file + "_c.txt");
     string buffer = "";
-    bitsToChar("01000001");
+    infile.close();
+    infile.open(filename);
+    while (infile.get(ch)) {
+        buffer+= (*charPath)[ch];
+        cout << buffer << endl;
+        if (buffer.size() > 8){
+            char outChar = bitsToChar(buffer.substr(0, 8));
+            outfile.write(&outChar, 1);
+            buffer = buffer.substr(8);
+        }
+    }
 
     delete root;
     delete charPath;
+    outfile.close();
 }
 
 int getCharPaths(Node* node, std::unordered_map<char, string>* map, string code) {
