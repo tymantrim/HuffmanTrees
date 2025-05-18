@@ -32,22 +32,22 @@ struct Node {
     }
 };
 
+int getCharPaths(Node* node, std::unordered_map<char, string>* map, string code);
+
 void compress(string filename){
-    //open the users file
     std::ifstream infile(filename);
     if (!infile.is_open()) {
         std::cerr << "Error opening file: " << filename << std::endl;
         return;
     }
 
-    //iterate through every charcter in the file and keep a frequency table
+    //uses unordered map to store frequencies because O(1) lookup
     std::unordered_map<char, int> frequencies;
     char ch;
     while (infile.get(ch)) {
         frequencies[ch]++;
     }
 
-    //translate the frequencies into Huffman Tree nodes and add them to a priority queue
     struct compareNodes{
         bool operator()(Node* a, Node* b){
             return *a > *b;
@@ -58,6 +58,8 @@ void compress(string filename){
         pq.push(new Node(entry.first, entry.second));
     }
 
+    //assemble tree until last two nodes, then use them to create root node
+    //null char means interior node
     while (pq.size() > 2){
         Node* a = pq.top(); pq.pop();
         Node* b = pq.top(); pq.pop();
@@ -68,7 +70,28 @@ void compress(string filename){
     Node* b = pq.top(); pq.pop();
     Node* root = new Node('\0', a->freq + b->freq, a, b);
 
+    //sets up mapping between char and it's path in the tree (string)
+    std::unordered_map<char, string>* charPath = new std::unordered_map<char, string>;
+    getCharPaths(root, charPath, "");
+
     delete root;
+    delete charPath;
+}
+
+int getCharPaths(Node* node, std::unordered_map<char, string>* map, string code) {
+    if (node == nullptr){
+        return 0;
+    }
+
+    if (node->value != '\0') {
+        (*map)[node->value] = code;
+        return 0;
+    }
+
+    getCharPaths(node->left, map, code + '0');
+    getCharPaths(node->right, map, code + '1');
+
+    return 0;
 }
 
 void decompress(string filename, string treefile){
