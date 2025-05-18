@@ -34,6 +34,22 @@ struct Node {
 
 int getCharPaths(Node* node, std::unordered_map<char, string>* map, string code);
 
+char bitsToChar(string bits){
+    if (bits.size() != 8){
+        throw std::invalid_argument("Bitstring is not 8 bits");
+    }
+    
+    cout << "Bitstring: " << bits << endl;
+    char c = 0 | (bits[0] - '0');
+    for (int i = 1; i < 8; i++){
+        c = c << 1;
+        c = c | (bits[i] - '0');
+    }
+    cout << "char: " << c << endl << endl;
+
+    return c;
+}
+
 void compress(string filename){
     std::ifstream infile(filename);
     if (!infile.is_open()) {
@@ -73,6 +89,9 @@ void compress(string filename){
     //sets up mapping between char and it's path in the tree (string)
     std::unordered_map<char, string>* charPath = new std::unordered_map<char, string>;
     getCharPaths(root, charPath, "");
+
+    string buffer = "";
+    bitsToChar("01000001");
 
     delete root;
     delete charPath;
