@@ -1,4 +1,5 @@
 #include <iostream>
+#include <sstream>
 #include <vector>
 #include <queue>
 #include <unordered_map>
@@ -108,7 +109,7 @@ void compress(string filename){
     //write tree to a file
     std::ofstream treeFile(file + ".tree");
     for (auto& entry: frequencies){
-        treeFile << entry.first << ": " << entry.second << endl;
+        treeFile << entry.first << " " << entry.second << endl;
     }
 
     delete root;
@@ -135,12 +136,42 @@ int getCharPaths(Node* node, std::unordered_map<char, string>* map, string code)
 void writeTree(std::unordered_map<char, int>* frequencies, string filename){
     std::ofstream treeFile(filename);
     for (auto& entry: *frequencies){
-        cout << entry.first + ": " + entry.second << endl;
+        cout << entry.first + " " + entry.second << endl;
     }
 }
 
-void decompress(string filename, string treefile){
+void decompress(string filename, string treename){
+    std::ifstream treefile(treename);
+    if (!treefile.is_open()) {
+        std::cerr << "Error opening file: " << treename << std::endl;
+        return;
+    }
 
+    std::unordered_map<char, int> frequencies;
+    string buf;
+    while (std::getline(treefile, buf)){
+        if (buf.empty()) continue;
+
+        //check if newline (space not followed by another space means previous line was \n)
+        char c;
+        int offset = 1;
+        if ((buf[0] == ' ') && (buf[1] != ' ')){
+            c = '\n';
+            --offset;
+        }else{
+            c = buf[0];
+        }
+        std::istringstream iStream(buf.substr(offset));
+        int val;
+        iStream >> val;
+
+        frequencies[c] = val;
+
+    }
+
+    for (auto& entry: frequencies){
+        cout << entry.first << ": " << entry.second << endl;
+    }
 }
 
 int main(int argc, char *argv[]){
