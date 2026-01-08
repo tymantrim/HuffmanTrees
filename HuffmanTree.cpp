@@ -34,18 +34,18 @@ struct Node {
 
 int getCharPaths(Node* node, std::unordered_map<char, string>* map, string code);
 
+void writeTree(std::unordered_map<char, int>* frequencies, string filename);
+
 char bitsToChar(string bits){
     if (bits.size() != 8){
         throw std::invalid_argument("Bitstring is not 8 bits");
     }
     
-    cout << "Bitstring: " << bits << endl;
     char c = 0 | (bits[0] - '0');
     for (int i = 1; i < 8; i++){
         c = c << 1;
         c = c | (bits[i] - '0');
     }
-    cout << "char: " << c << endl << endl;
 
     return c;
 }
@@ -98,12 +98,17 @@ void compress(string filename){
     infile.open(filename);
     while (infile.get(ch)) {
         buffer+= (*charPath)[ch];
-        cout << buffer << endl;
-        if (buffer.size() > 8){
+        while (buffer.size() >= 8){
             char outChar = bitsToChar(buffer.substr(0, 8));
             outfile.write(&outChar, 1);
             buffer = buffer.substr(8);
         }
+    }
+
+    //write tree to a file
+    std::ofstream treeFile(file + ".tree");
+    for (auto& entry: frequencies){
+        treeFile << entry.first << ": " << entry.second << endl;
     }
 
     delete root;
@@ -127,6 +132,13 @@ int getCharPaths(Node* node, std::unordered_map<char, string>* map, string code)
     return 0;
 }
 
+void writeTree(std::unordered_map<char, int>* frequencies, string filename){
+    std::ofstream treeFile(filename);
+    for (auto& entry: *frequencies){
+        cout << entry.first + ": " + entry.second << endl;
+    }
+}
+
 void decompress(string filename, string treefile){
 
 }
@@ -135,7 +147,7 @@ int main(int argc, char *argv[]){
     
     // check and parse command line arguments
     if (argc < 3) {
-        std::cerr << "Usage: " << argv[0] << " <input_file> <action_flag (--compress or --decompress)>)" << endl;
+        std::cerr << "Usage: " << argv[0] << " <input_file> <action_flag (--compress or --decompress)>" << endl;
         return 1;
     }
     int opt;
