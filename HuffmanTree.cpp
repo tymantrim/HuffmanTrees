@@ -42,7 +42,40 @@ struct compareNodes{
 
 int getCharPaths(Node* node, std::unordered_map<char, string>* map, string code);
 
-void writeTree(std::unordered_map<char, int>* frequencies, string filename);
+//binary serialization of tree
+void writeTree(const Node* node, std::ofstream& out){
+    if (!node){
+        unsigned char flag = 0;
+        out.write(reinterpret_cast<const char*>(&flag), sizeof(flag));
+        return;
+    }
+
+    unsigned char flag = 1;
+    out.write(reinterpret_cast<const char*>(&flag), sizeof(flag));
+    out.write(reinterpret_cast<const char*>(&node->value), sizeof(node->value));
+
+    writeTree(node->left, out);
+    writeTree(node->right, out);
+}
+
+//binary deserialization of tree
+Node* readTree(std::ifstream& in){
+    unsigned char flag;
+    if (!in.read(reinterpret_cast<char*>(&flag), sizeof(flag))) {
+        return nullptr;
+    }
+
+    if (flag == 0){
+        return nullptr;
+    }
+
+    char value;
+    in.read(reinterpret_cast<char*>(&value), sizeof(value));
+    Node* node = new Node(value, 0);
+    node->left = readTree(in);
+    node->right = readTree(in);
+    return node; 
+}
 
 char bitsToChar(string bits){
     if (bits.size() != 8){
@@ -110,9 +143,8 @@ void compress(string filename){
 
     //write tree to a file
     std::ofstream treeFile(file + ".tree");
-    for (auto& entry: frequencies){
-        treeFile << entry.first << " " << entry.second << endl;
-    }
+    writeTree(root, treeFile);
+    treeFile.close();
 
     delete root;
     delete charPath;
@@ -135,11 +167,6 @@ int getCharPaths(Node* node, std::unordered_map<char, string>* map, string code)
     return 0;
 }
 
-//binary serialization of tree
-void writeTree(const Node* node, std::ofstream& out){
-
-}
-
 void decompress(string filename, string treename){
     std::ifstream treefile(treename);
     if (!treefile.is_open()) {
@@ -147,45 +174,8 @@ void decompress(string filename, string treename){
         return;
     }
 
-    std::unordered_map<char, int> frequencies;
-    string buf;
-    while (std::getline(treefile, buf)){
-        if (buf.empty()) continue;
-
-        //check if newline (space not followed by another space means previous line was \n)
-        char ch;
-        int offset = 1;
-        if ((buf[0] == ' ') && (buf[1] != ' ')){
-            ch = '\n';
-            --offset;
-        }else{
-            ch = buf[0];
-        }
-        std::istringstream iStream(buf.substr(offset));
-        int val;
-        iStream >> val;
-
-        frequencies[ch] = val;
-
-    }
-
-    std::priority_queue<Node*, std::vector<Node*>, compareNodes> pq;
-    for (auto& entry: frequencies){
-        pq.push(new Node(entry.first, entry.second));
-    }
-
-    //assemble tree until last two nodes, then use them to create root node
-    //null char means interior node
-    while (pq.size() > 2){
-        Node* a = pq.top(); pq.pop();
-        Node* b = pq.top(); pq.pop();
-        pq.push(new Node('\0', a->freq + b->freq, a, b));
-    }
-
-    Node* a = pq.top(); pq.pop();
-    Node* b = pq.top(); pq.pop();
-    Node* root = new Node('\0', a->freq + b->freq, a, b);
-
+    Node* root = readTree(treefile);
+    
     //open compressed file
     std::ifstream file(filename);
     if (!file.is_open()) {
@@ -204,17 +194,11 @@ void decompress(string filename, string treename){
     char ch;
     Node* currNode = root;
     while (file.get(ch)){
-        cout << "char: " << ch << endl;
-        std::bitset<8> bits(ch);
-        cout << "bits: " << bits << endl;
         for (int i = 7; i >=0; i--){
-            cout << "ch & (0b1 << i) = " <<  (ch & (0b1 << i)) << endl;
             if (ch & (0b1 << i)){
                 currNode = currNode->right;
-                cout << "went right" << endl;
             }else{
                 currNode = currNode->left;
-                cout << "went left" << endl;
             }
 
             if (currNode->value != '\0'){
