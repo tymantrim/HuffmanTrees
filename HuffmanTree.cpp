@@ -213,7 +213,7 @@ int main(int argc, char *argv[]){
     
     // check and parse command line arguments
     if (argc < 3) {
-        std::cerr << "Usage: " << argv[0] << " <input_file> <action_flag (--compress or --decompress)>" << endl;
+        std::cerr << "Usage: " << argv[0] << " -i <input file> -c (for compress) or -t <tree file> -d (for decompress)" << endl;
         return 1;
     }
     int opt;
@@ -235,7 +235,7 @@ int main(int argc, char *argv[]){
                 action = 0;
                 break;
             default:
-                std::cerr << "Usage: " << argv[0] << " -c <input_file> (for compress) or -d <input_file> (for decompress)" << endl;
+                std::cerr << "Usage: " << argv[0] << " -i <input file> -c (for compress) or -t <tree file> -d (for decompress)" << endl;
                 return 1;
         }
     }
