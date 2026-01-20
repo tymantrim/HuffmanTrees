@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <unistd.h>
 #include <fstream>
+#include <bitset>
 
 using std::string, std::cout, std::endl;
 
@@ -30,6 +31,12 @@ struct Node {
     }
     bool operator<(const Node& other) const {
         return freq < other.freq;
+    }
+};
+
+struct compareNodes{
+    bool operator()(Node* a, Node* b){
+        return *a > *b;
     }
 };
 
@@ -65,11 +72,6 @@ void compress(string filename){
         frequencies[ch]++;
     }
 
-    struct compareNodes{
-        bool operator()(Node* a, Node* b){
-            return *a > *b;
-        }
-    };
     std::priority_queue<Node*, std::vector<Node*>, compareNodes> pq;
     for (auto& entry: frequencies){
         pq.push(new Node(entry.first, entry.second));
@@ -133,11 +135,9 @@ int getCharPaths(Node* node, std::unordered_map<char, string>* map, string code)
     return 0;
 }
 
-void writeTree(std::unordered_map<char, int>* frequencies, string filename){
-    std::ofstream treeFile(filename);
-    for (auto& entry: *frequencies){
-        cout << entry.first + " " + entry.second << endl;
-    }
+//binary serialization of tree
+void writeTree(const Node* node, std::ofstream& out){
+
 }
 
 void decompress(string filename, string treename){
@@ -153,24 +153,75 @@ void decompress(string filename, string treename){
         if (buf.empty()) continue;
 
         //check if newline (space not followed by another space means previous line was \n)
-        char c;
+        char ch;
         int offset = 1;
         if ((buf[0] == ' ') && (buf[1] != ' ')){
-            c = '\n';
+            ch = '\n';
             --offset;
         }else{
-            c = buf[0];
+            ch = buf[0];
         }
         std::istringstream iStream(buf.substr(offset));
         int val;
         iStream >> val;
 
-        frequencies[c] = val;
+        frequencies[ch] = val;
 
     }
 
+    std::priority_queue<Node*, std::vector<Node*>, compareNodes> pq;
     for (auto& entry: frequencies){
-        cout << entry.first << ": " << entry.second << endl;
+        pq.push(new Node(entry.first, entry.second));
+    }
+
+    //assemble tree until last two nodes, then use them to create root node
+    //null char means interior node
+    while (pq.size() > 2){
+        Node* a = pq.top(); pq.pop();
+        Node* b = pq.top(); pq.pop();
+        pq.push(new Node('\0', a->freq + b->freq, a, b));
+    }
+
+    Node* a = pq.top(); pq.pop();
+    Node* b = pq.top(); pq.pop();
+    Node* root = new Node('\0', a->freq + b->freq, a, b);
+
+    //open compressed file
+    std::ifstream file(filename);
+    if (!file.is_open()) {
+        std::cerr << "Error opening file: " << filename << std::endl;
+        return;
+    }
+
+    //open decompressed file
+    string outfilename = filename.substr(0, filename.find_last_of("_c")) + "d.txt";
+    std::ofstream outfile(outfilename);
+    if (!file.is_open()) {
+        std::cerr << "Error opening file: " << outfilename << std::endl;
+        return;
+    }
+    
+    char ch;
+    Node* currNode = root;
+    while (file.get(ch)){
+        cout << "char: " << ch << endl;
+        std::bitset<8> bits(ch);
+        cout << "bits: " << bits << endl;
+        for (int i = 7; i >=0; i--){
+            cout << "ch & (0b1 << i) = " <<  (ch & (0b1 << i)) << endl;
+            if (ch & (0b1 << i)){
+                currNode = currNode->right;
+                cout << "went right" << endl;
+            }else{
+                currNode = currNode->left;
+                cout << "went left" << endl;
+            }
+
+            if (currNode->value != '\0'){
+                outfile << currNode->value;
+                currNode = root;
+            }
+        }
     }
 }
 
